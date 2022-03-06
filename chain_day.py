@@ -53,7 +53,27 @@ class chain_day():
         lo_idx = bisect_left(deltas, lo)
         hi_idx = bisect_left(deltas, hi)
 
-        return self.strikes[lo_idx, hi_idx]
+        return self.strikes[lo_idx : hi_idx]
+
+    
+    def get_atm_strikes(self, num_strikes: int):
+
+        atm_idx = self.get_atm_idx()
+        lo      = max(atm_idx - num_strikes, 0)
+        hi      = atm_idx + num_strikes
+
+        strikes = {}
+
+        for strike in self.strikes[lo:hi]:
+
+            strikes[strike] = self.opt_rows[strike]
+
+        return strikes
+
+
+    def get_strike_by_idx(self, idx: int):
+
+        return self.opt_rows[self.strikes[idx]]
 
 
     def get_atm_idx(self):
