@@ -76,5 +76,6 @@ if __name__ == "__main__":
 
     ul          = argv[1]
     ul_class    = argv[2]
+    n_strikes   = int(argv[3])
 
     report(ul, ul_class)
