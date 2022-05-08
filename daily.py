@@ -3,12 +3,18 @@ from sys        import argv
 from structs    import opt_row
 
 
-def report(ul: str, ul_class: str):
+def report(
+    ul: str,
+    ul_class: str,
+    n_strikes: int
+):
 
 
     by_date = get_chain_defs_by_date(ul)
     latest  = list(by_date.keys())[-1]
         
+    print(latest + "\n")
+
     for chain_def in by_date[latest]:
 
         if chain_def.name == ul_class:
@@ -17,11 +23,11 @@ def report(ul: str, ul_class: str):
 
             print(
                 f"{cd.underlying_id}".rjust(12), 
-                f"{cd.underlying_settle}".rjust(12),
+                f"{cd.underlying_settle: 0.2f}".rjust(12),
                 "\n"
             )
 
-            atm_strikes = cd.get_atm_strikes(10)
+            atm_strikes = cd.get_atm_strikes(n_strikes)
             idx         = list(atm_strikes.keys())
             idx.reverse()
 
@@ -58,12 +64,12 @@ def report(ul: str, ul_class: str):
 
                 print(
                     f"{strike: 0.1f}".rjust(12),
-                    f"{call[opt_row.settle]: 0.1f}".rjust(12),
-                    f"{call[opt_row.settle_delta]: 0.1f}".rjust(12),
+                    f"{call[opt_row.settle]: 0.2f}".rjust(12),
+                    f"{call[opt_row.settle_delta]: 0.2f}".rjust(12),
                     f"{call[opt_row.previous_interest]}".rjust(12),
                     f"{call[opt_row.previous_volume]}".rjust(12),
-                    f"{put[opt_row.settle]: 0.1f}".rjust(12),
-                    f"{put[opt_row.settle_delta]: 0.1f}".rjust(12),
+                    f"{put[opt_row.settle]: 0.2f}".rjust(12),
+                    f"{put[opt_row.settle_delta]: 0.2f}".rjust(12),
                     f"{put[opt_row.previous_interest]}".rjust(12),
                     f"{put[opt_row.previous_volume]}".rjust(12),
                 )
@@ -78,4 +84,4 @@ if __name__ == "__main__":
     ul_class    = argv[2]
     n_strikes   = int(argv[3])
 
-    report(ul, ul_class)
+    report(ul, ul_class, n_strikes)
