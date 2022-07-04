@@ -2,6 +2,9 @@ from structs    import opt_row
 from typing     import List
 from bisect     import bisect_left
 
+
+# do not instantiate, call util.get_chain_day
+
 class chain_day():
 
 
@@ -42,18 +45,33 @@ class chain_day():
         )
 
 
-    def get_strikes_by_delta(self, 
+    def get_opt_by_delta(self, 
         call: bool,
-        lo: float, 
-        hi: float
+        delta: float
     ):
 
-        deltas = self.call_deltas if call else self.put_deltas
+        opt     = None
+        deltas  = None
+        side    = None     
 
-        lo_idx = bisect_left(deltas, lo)
-        hi_idx = bisect_left(deltas, hi)
+        if call:
 
-        return self.strikes[lo_idx : hi_idx]
+            deltas  = self.call_deltas
+            side    = 1
+
+        else:
+
+            deltas  = self.put_deltas
+            side    = 0
+
+        for i in range(1, len(deltas)):
+
+            if deltas[i - 1] >= delta and deltas[i] < delta:
+
+                strike  = self.strikes[i]
+                opt     = self.opt_rows[strike][side]
+
+        return opt
 
     
     def get_atm_strikes(self, num_strikes: int):
@@ -102,11 +120,13 @@ class chain_day():
             opt_rows[strike][row[opt_row.call]] = row
 
         self.strikes = list(opt_rows.keys())
+        
         self.call_deltas  = [
             row[opt_row.settle_delta]
             for row in rows
             if row[opt_row.call]
         ]
+
         self.put_deltas = [
             row[opt_row.settle_delta]
             for row in rows

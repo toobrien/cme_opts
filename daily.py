@@ -5,7 +5,7 @@ from structs    import opt_row
 
 def report(
     ul: str,
-    ul_class: str,
+    opt_class: str,
     n_strikes: int
 ):
 
@@ -17,7 +17,7 @@ def report(
 
     for chain_def in by_date[latest]:
 
-        if chain_def.name == ul_class:
+        if chain_def.opt_class == opt_class:
         
             cd = get_chain_day(chain_def, latest)
 
@@ -81,7 +81,7 @@ def report(
 if __name__ == "__main__":
 
     ul          = argv[1]
-    ul_class    = argv[2]
+    opt_class    = argv[2]
     n_strikes   = int(argv[3])
 
-    report(ul, ul_class, n_strikes)
+    report(ul, opt_class, n_strikes)

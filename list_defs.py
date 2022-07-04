@@ -13,7 +13,7 @@ def report(ul: str, class_: str):
         
     for chain_def in by_date[latest]:
 
-        if class_ == "all" or chain_def.name == class_:
+        if class_ == "all" or chain_def.opt_class == class_:
 
             cd = get_chain_day(chain_def, latest)
             oi = 0
@@ -26,7 +26,7 @@ def report(ul: str, class_: str):
                 try:    oi += rows[1][opt_row.previous_interest]
                 except: pass
 
-            print(str(chain_def) + "\t" + str(oi) + "\t" + CONTRACT_DESCRIPTIONS[chain_def.name])
+            print(str(chain_def) + "\t" + str(oi) + "\t" + CONTRACT_DESCRIPTIONS[chain_def.opt_class])
 
 
 if __name__ == "__main__":

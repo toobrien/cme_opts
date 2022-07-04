@@ -5,12 +5,12 @@ class chain_def():
 
     def __init__(
         self,
-        name:           str,
+        opt_class:      str,
         underlying_id:  str,
         expiry:         str
     ):
 
-        self.name         = name
+        self.opt_class      = opt_class
         self.expiry         = expiry
         self.underlying_id  = underlying_id
 
@@ -19,7 +19,7 @@ class chain_def():
 
         return "\t".join(
             [
-                self.name,
+                self.opt_class,
                 self.expiry,
                 self.underlying_id
             ]
