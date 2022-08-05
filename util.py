@@ -1,8 +1,10 @@
 from chain_day  import chain_day
 from chain_def  import chain_def
+from chain_set  import chain_set
 from json       import loads
 from sqlite3    import connect
 from structs    import opt_row
+from typing     import List
 
 
 CONFIG  = loads(open("./config.json").read())
@@ -114,3 +116,45 @@ def get_expiries_for_underlying_and_class(
     flat = [ exp[0] for exp in exps ]
 
     return flat
+
+
+# assumes no two options for a symbol expire on the same day
+# if this is not correct, choose opt classes to exclude with "exclude_classes"
+
+def get_chain_set(
+    symbol:             str,
+    start:              str,
+    end:                str,
+    excluded_classes:   List[str]
+):
+
+    cs = chain_set(symbol)
+
+    opt_rows = CUR.execute(
+        f'''
+            SELECT  *
+            FROM    cme_opts
+            WHERE   date BETWEEN "{start}" AND "{end}"
+            AND     underlying_symbol = "{symbol}"
+            AND     name NOT IN ({", ".join(excluded_classes)})
+        '''
+    ).fetchall()
+
+    dates = { row[opt_row.date]: {} for row in opt_rows }
+
+    for row in opt_rows:
+
+        date            = row[opt_row.date]
+        symbol          = row[opt_row.symbol]
+        ul_id           = row[opt_row.underlying_id]
+        expiry          = row[opt_row.expiry]
+        chain_def_id    = (symbol, ul_id, expiry)
+
+        if expiry not in dates[date]:
+
+            ch_def              = chain_def(*chain_def_id)
+            dates[date][expiry] = get_chain_day(ch_def, date)
+    
+    cs.set_dates(dates)
+
+    return cs

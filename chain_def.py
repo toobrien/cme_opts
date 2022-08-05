@@ -11,8 +11,8 @@ class chain_def():
     ):
 
         self.opt_class      = opt_class
-        self.expiry         = expiry
         self.underlying_id  = underlying_id
+        self.expiry         = expiry
 
 
     def __str__(self):
