@@ -45,9 +45,10 @@ class chain_day():
         )
 
 
-    def get_opt_by_delta(self, 
-        call: bool,
-        delta: float
+    def get_opt_by_delta(
+        self, 
+        call:   bool,
+        delta:  float
     ):
 
         opt     = None
@@ -64,12 +65,33 @@ class chain_day():
             deltas  = self.put_deltas
             side    = 0
 
+        nearest = bisect_left(deltas, delta)
+        strike  = self.strikes[nearest]
+        opt     = self.opt_rows[strike][side]
+
+        '''
         for i in range(1, len(deltas)):
 
             if deltas[i - 1] >= delta and deltas[i] < delta:
 
                 strike  = self.strikes[i]
                 opt     = self.opt_rows[strike][side]
+        '''
+
+        return opt
+
+
+    def get_opt_by_strike(
+        self,
+        call:   bool,
+        strike: float
+    ):
+
+        opt     = None
+        side    = 1 if call else 0
+
+        nearest = bisect_left(self.strikes, strike)
+        opt = self.opt_rows[nearest][side]
 
         return opt
 
@@ -105,7 +127,7 @@ class chain_day():
             return -1
 
 
-    def set_opt_rows(self, rows: List): 
+    def set_opt_rows(self, rows: List[opt_row]): 
         
         opt_rows = self.opt_rows
 

@@ -11,13 +11,33 @@ class chain_set():
         symbol: str
     ):
 
-        self.dates  = {}
+        self.data  = None
         self.symbol = symbol
 
     
-    def set_dates(
+    def set_data(
         self,
-        dates: dict[str: dict[str: chain_day]]
+        data: dict[str: dict[str: chain_day]]
     ):
 
-        self.dates = dates
+        self.data   = data
+        self.dates  = sorted(data.keys())
+
+        for date in data:
+
+            data[date]["expiries"] = sorted(data[date].keys())
+
+    
+    def get_dates(self):
+
+        return self.dates
+
+    
+    def get_expiries_by_date(self, date: str):
+
+        return self.data[date]["expiries"]
+
+
+    def get_chain_day(self, date: str, expiry: str):
+
+        return self.data[date][expiry]

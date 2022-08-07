@@ -4,13 +4,16 @@ from chain_set  import chain_set
 from json       import loads
 from sqlite3    import connect
 from structs    import opt_row
+from time       import time
 from typing     import List
 
+t0 = time()
 
 CONFIG  = loads(open("./config.json").read())
 CON     = connect(CONFIG["db_path"])
 CUR     = CON.cursor()
 
+print(f"connect: {time() - t0:0.1f}")
 
 # see list_defs.py for usage
 
@@ -130,6 +133,8 @@ def get_chain_set(
 
     cs = chain_set(symbol)
 
+    t1 = time()
+
     opt_rows = CUR.execute(
         f'''
             SELECT  *
@@ -139,6 +144,8 @@ def get_chain_set(
             AND     name NOT IN ({", ".join(excluded_classes)})
         '''
     ).fetchall()
+
+    print(f"query: {time() - t1:0.1f}")
 
     dates = { row[opt_row.date]: {} for row in opt_rows }
 
@@ -154,7 +161,7 @@ def get_chain_set(
 
             ch_def              = chain_def(*chain_def_id)
             dates[date][expiry] = get_chain_day(ch_def, date)
-    
-    cs.set_dates(dates)
+
+    cs.set_data(dates)
 
     return cs
