@@ -65,18 +65,12 @@ class chain_day():
             deltas  = self.put_deltas
             side    = 0
 
-        nearest = bisect_left(deltas, delta)
-        strike  = self.strikes[nearest]
-        opt     = self.opt_rows[strike][side]
-
-        '''
         for i in range(1, len(deltas)):
 
             if deltas[i - 1] >= delta and deltas[i] < delta:
 
                 strike  = self.strikes[i]
                 opt     = self.opt_rows[strike][side]
-        '''
 
         return opt
 
@@ -89,9 +83,13 @@ class chain_day():
 
         opt     = None
         side    = 1 if call else 0
+        strikes = self.strikes
 
-        nearest = bisect_left(self.strikes, strike)
-        opt = self.opt_rows[nearest][side]
+        for i in range(1, len(strikes)):
+
+            if strikes[i - 1] <= strike and strikes[i] < strike:
+
+                opt = self.opt_rows[strike][side]
 
         return opt
 

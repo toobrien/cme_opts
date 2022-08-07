@@ -7,13 +7,11 @@ from structs    import opt_row
 from time       import time
 from typing     import List
 
-t0 = time()
 
 CONFIG  = loads(open("./config.json").read())
 CON     = connect(CONFIG["db_path"])
 CUR     = CON.cursor()
 
-print(f"connect: {time() - t0:0.1f}")
 
 # see list_defs.py for usage
 
