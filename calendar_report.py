@@ -54,7 +54,7 @@ class calendar():
         self.rows   = None
 
 
-def calendar_report(
+def report(
     cs:             chain_set,
     strike:         float,
     width_range:    List[int]
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     cs = get_chain_set(symbol, START, END, [])
 
-    calendar_report(cs, strike, width_range)
+    report(cs, strike, width_range)
 
     print(f"elapsed: {time() - t0: 0.1f}")
 
