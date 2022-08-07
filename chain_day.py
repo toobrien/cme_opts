@@ -12,6 +12,7 @@ class chain_day():
         self, 
         date:               str,
         symbol:             str,
+        expiry:             str,
         underlying_month:   str,
         underlying_year:    str,
         underlying_settle:  float,
@@ -20,6 +21,7 @@ class chain_day():
 
         self.date               = date
         self.symbol             = symbol
+        self.expiry             = expiry
         self.underlying_month   = underlying_month
         self.underlying_year    = underlying_year
         self.underlying_settle  = underlying_settle

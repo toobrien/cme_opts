@@ -84,6 +84,7 @@ def get_chain_day(definition: chain_def, date: str):
     cd = chain_day(
         date,
         definition.opt_class,
+        opt_rows[0][opt_row.expiry],
         ul_row[3],
         ul_row[2],
         ul_row[4],
