@@ -33,26 +33,26 @@ class calendar():
 
     def __init__(
         self,
-        type:           int,
-        front_exp:      str,
-        front_ul:       str,
-        front_class:    str,
-        back_exp:       str,
-        back_ul:        str,
-        back_class:     str,
-        strike:         float
+        type:               int,
+        front_exp:          str,
+        front_ul:           str,
+        front_class:        str,
+        back_exp:           str,
+        back_ul:            str,
+        back_class:         str,
+        strike_or_delta:    float
     ):
 
-        self.type           = type
-        self.front_exp      = front_exp
-        self.front_ul       = front_ul
-        self.front_class    = front_class
-        self.back_exp       = back_exp
-        self.back_ul        = back_ul
-        self.back_class     = back_class
-        self.strike         = strike
+        self.type               = type
+        self.front_exp          = front_exp
+        self.front_ul           = front_ul
+        self.front_class        = front_class
+        self.back_exp           = back_exp
+        self.back_ul            = back_ul
+        self.back_class         = back_class
+        self.strike_or_delta    = strike_or_delta
 
-        self.id     = (front_exp, back_exp, strike, type)
+        self.id     = (front_exp, back_exp, strike_or_delta, type)
         self.width  = (date.strptime(back_exp, DATE_FMT) - date.strptime(front_exp, DATE_FMT)).days
         self.rows   = None
 
@@ -103,13 +103,15 @@ def report(
 
     if not ref_delta:
 
+        # front leg not found
+
         return
 
-    # build user-specified spread
+    # build user-specified spread (by strike)
 
     
     
-    # build historical spreads
+    # build historical spreads (by delta)
 
 
     pass
