@@ -1,5 +1,5 @@
 from chain_set  import chain_set
-from datetime   import date
+from datetime   import datetime
 from enum       import IntEnum
 from structs    import opt_row
 from sys        import argv
@@ -11,6 +11,11 @@ from util       import get_chain_set
 START       = "1900-01-01"
 END         = "2100-01-01"
 DATE_FMT    = "%Y-%m-%d"
+
+
+def get_width(front_leg_expiry, back_leg_expiry):
+
+    return (datetime.strptime(back_leg_expiry, DATE_FMT) - datetime.strptime(front_leg_expiry)).days
 
 
 class calendar_row(IntEnum):
@@ -27,6 +32,8 @@ class calendar_row(IntEnum):
     back_delta      = 9
     back_ul_settle  = 10
 
+
+# instantiate with get_calendar()
 
 class calendar():
 
@@ -53,66 +60,118 @@ class calendar():
         self.strike_or_delta    = strike_or_delta
 
         self.id     = (front_exp, back_exp, strike_or_delta, type)
-        self.width  = (date.strptime(back_exp, DATE_FMT) - date.strptime(front_exp, DATE_FMT)).days
-        self.rows   = None
+        self.width  = get_width(front_exp, back_exp)
+        self.rows   = []
+
+    
+    def get_type(self):             return self.type 
+    def get_front_exp(self):        return self.front_exp
+    def get_front_ul(self):         return self.front_ul
+    def get_front_class(self):      return self.front_class
+    def get_back_exp(self):         return self.back_exp
+    def get_back_ul(self):          return self.back_ul
+    def get_back_class(self):       return self.back_class
+    def get_strike_or_delta(self):  return self.strike_or_delta
+    def get_id(self):               return self.id
+    def get_width(self):            return self.width
+    def get_rows(self):             return self.rows
+
+
+def get_calendar(
+    cs:                 chain_set,
+    type:               int,
+    front_leg_expiry:   str,
+    back_leg_expiry:    str,
+    strike:             float,
+    delta:              float
+):
+
+    cal   = None
+    dates = cs.get_dates()
+
+    for date in dates:
+
+        expiries = cs.get_expiries_by_date(date)
+
+        if front_leg_expiry in expiries and back_leg_expiry in expiries:
+
+            front_cd    = cs.get_chain_day(date, front_leg_expiry)
+            back_cd     = cs.get_chain_day(date, back_leg_expiry)
+
+    return cal
 
 
 def report(
     cs:                 chain_set,
-    type:               int,
-    strike:             float,
-    front_leg_symbol:   str,
-    front_leg_expiry:   str,
-    back_leg_symbol:    str,
-    back_leg_expiry:    str,
+    ref_type:           int,
+    ref_strike:         float,
+    ref_front_leg_exp:  str,
+    ref_back_leg_exp:   str,
     width_margin:       int
 ):
 
     # set reference delta from latest settlement of user-specified front leg
     # front leg delta is the basis for comparing spreads
 
+    calendars   = {}
+    ref_cal     = None
     ref_delta   = None
+    ref_width   = get_width(ref_front_leg_exp, ref_back_leg_exp)
     dates       = cs.get_dates()
-    i           = len(dates) - 1
 
-    while i >= 0:
+    # get delta for front leg of user-specified calendar
 
-        cur_date = dates[i]
+    for date in reversed(dates):
 
-        expiries = cs.get_expiries_by_date(cur_date)
+        expiries = cs.get_expiries_by_date(date)
 
-        for expiry in expiries:
+        if ref_front_leg_exp in expiries and ref_back_leg_exp in expiries:
 
-            cd = cs.get_chain_day(cur_date, expiry)
+            cd = cs.get_chain_day(date, front_leg_expiry)
 
-            if cd.symbol == front_leg_symbol and cd.expiry == front_leg_expiry:
+            opt = cd.get_opt_by_strike(ref_type, ref_strike)
 
-                opt = cd.get_opt_by_strike(type, strike)
+            if opt:
 
-                if (opt):
+                ref_delta = opt.rows[-1][opt_row.settle_delta]
 
-                    ref_delta = opt[opt_row.settle_delta]
-                
-                    break
+            if ref_delta:
 
-                else:
-
-                    # no such strike, can't create report
-
-                    return
+                break
 
     if not ref_delta:
 
-        # front leg not found
+        print("reference calendar not found. please check inputs.")
 
         return
 
-    # build user-specified spread (by strike)
+    # build reference (user-specified) calendar
 
-    
-    
-    # build historical spreads (by delta)
+    id = (ref_front_leg_exp, ref_back_leg_exp, ref_strike, ref_type)
 
+    ref_cal = get_calendar(cs, ref_type, ref_front_leg_exp, ref_back_leg_exp, ref_strike, None)
+
+    calendars[id] = ref_cal
+
+    # build calendars
+
+    for date in dates:
+
+        for i in range(len(expiries) - 1):
+
+            front_exp = expiries[i]
+
+            for j in range(i + 1, len(expiries)):
+
+                back_exp = expiries[j]
+
+                width = get_width(front_leg_expiry, back_leg_expiry)
+
+                if ref_width - width_margin <= width <= ref_width + width_margin:
+
+                    id = (front_exp, back_exp, ref_delta, ref_type)
+
+                    calendars[id] = get_calendar(cs, ref_type, front_exp, back_exp, None, ref_delta)
 
     pass
 
@@ -122,9 +181,9 @@ if __name__ == "__main__":
     symbol              = argv[1]
     type                = argv[2]
     strike              = float(argv[3])
-    defs                = argv[4].split(",")
-    front_leg           = defs[0].split(":")
-    back_leg            = defs[1].split(":")
+    defs                = argv[4].split(":")
+    front_leg_expiry    = defs[0]
+    back_leg_expiry     = defs[1]
     width_margin        = int(argv[5])
     excluded_classes    = []
 
@@ -140,10 +199,8 @@ if __name__ == "__main__":
         cs,
         1 if type == "call" else 0,
         strike,
-        front_leg[0],
-        front_leg[1],
-        back_leg[0],
-        back_leg[1],
+        front_leg_expiry,
+        back_leg_expiry,
         width_margin
     )
 
