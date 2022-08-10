@@ -121,7 +121,7 @@ def get_expiries_for_underlying_and_class(
 
 
 # assumes no two options for a symbol expire on the same day
-# if this is not correct, choose opt classes to exclude with "exclude_classes"
+# if this is not correct, choose opt classes to exclude with "exclude_classes" until the assumption is valid
 
 def get_chain_set(
     symbol:             str,

@@ -154,3 +154,11 @@ class chain_day():
             for row in rows
             if not row[opt_row.call]
         ]
+
+    def get_date(self):                 return self.date           
+    def get_symbol(self):               return self.symbol             
+    def get_expiry(self):               return self.expiry             
+    def get_underlying_month(self):     return self.underlying_month   
+    def get_underlying_year(self):      return self.underlying_year    
+    def get_underlying_settle(self):    return self.underlying_settle  
+    def get_underlying_id(self):        return self.underlying_id      

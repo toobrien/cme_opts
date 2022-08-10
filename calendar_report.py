@@ -1,11 +1,11 @@
-from chain_set  import chain_set
-from datetime   import datetime
-from enum       import IntEnum
-from structs    import opt_row
-from sys        import argv
-from time       import time
-from typing     import List
-from util       import get_chain_set
+from black_scholes  import iv
+from chain_set      import chain_set
+from datetime       import datetime
+from enum           import IntEnum
+from structs        import opt_row
+from sys            import argv
+from time           import time
+from util           import get_chain_set
 
 
 START       = "1900-01-01"
@@ -13,9 +13,9 @@ END         = "2100-01-01"
 DATE_FMT    = "%Y-%m-%d"
 
 
-def get_width(front_leg_expiry, back_leg_expiry):
+def get_width(front_date, back_date):
 
-    return (datetime.strptime(back_leg_expiry, DATE_FMT) - datetime.strptime(front_leg_expiry)).days
+    return (datetime.strptime(back_date, DATE_FMT) - datetime.strptime(front_date)).days
 
 
 class calendar_row(IntEnum):
@@ -98,6 +98,84 @@ def get_calendar(
             front_cd    = cs.get_chain_day(date, front_leg_expiry)
             back_cd     = cs.get_chain_day(date, back_leg_expiry)
 
+            front_opt   = None
+            back_opt    = None
+
+            if strike:
+            
+                front_opt   = front_cd.get_opt_by_strike(type, strike)
+                back_opt    = back_cd.get_opt_by_strike(type, strike)
+
+            elif delta:
+
+                front_opt   = front_cd.get_opt_by_delta(type, delta)
+                back_opt    = back_cd.get_opt_by_delta(type, delta)
+
+            if not front_opt or not back_opt:
+
+                continue
+
+            if not cal:
+
+                cal = calendar(
+                        type,
+                        front_leg_expiry,
+                        front_opt[opt_row.underlying_id], 
+                        front_opt[opt_row.symbol],
+                        back_leg_expiry,
+                        back_opt[opt_row.underlying_id],
+                        back_opt[opt_row.symbol],
+                        strike if strike else delta
+                    )
+
+            rows = calendar.get_rows()
+
+            # redefine in case delta was passed, rather than strike
+
+            strike          = front_opt[opt_row.strike]
+
+            front_exp       = front_opt[opt_row.date]
+            front_delta     = front_opt[opt_row.settle_delta]
+            front_dte       = max(0, get_width(date, front_exp))
+            front_settle    = front_opt[opt_row.settle]
+            front_ul_settle = front_cd.get_underlying_settle()
+            front_iv        = iv(
+                                type, 
+                                front_ul_settle, 
+                                strike,
+                                front_dte,
+                                front_settle
+                            )
+
+            back_exp        = back_opt[opt_row.date]
+            back_delta      = back_opt[opt_row.settle_delta]
+            back_dte        = max(0, get_width(date, back_exp))
+            back_settle     = back_opt[opt_row.settle]
+            back_ul_settle  = back_cd.get_underlying_settle()
+            back_iv         = iv(
+                                type,
+                                back_ul_settle,
+                                strike,
+                                back_dte,
+                                back_settle
+                            )
+
+            rows.append(
+                (
+                    date,
+                    front_settle,
+                    front_dte,
+                    front_iv,
+                    front_delta,
+                    front_ul_settle,
+                    back_settle,
+                    back_dte,
+                    back_iv,
+                    back_delta,
+                    back_ul_settle
+                )
+            )
+
     return cal
 
 
@@ -171,7 +249,9 @@ def report(
 
                     id = (front_exp, back_exp, ref_delta, ref_type)
 
-                    calendars[id] = get_calendar(cs, ref_type, front_exp, back_exp, None, ref_delta)
+                    if id not in calendars:
+                    
+                        calendars[id] = get_calendar(cs, ref_type, front_exp, back_exp, None, ref_delta)
 
     pass
 
