@@ -11,11 +11,12 @@ from util           import get_chain_set
 START       = "1900-01-01"
 END         = "2100-01-01"
 DATE_FMT    = "%Y-%m-%d"
-
+RATE        = 0.03
+DPY         = 252
 
 def get_width(front_date, back_date):
 
-    return (datetime.strptime(back_date, DATE_FMT) - datetime.strptime(front_date)).days
+    return (datetime.strptime(back_date, DATE_FMT) - datetime.strptime(front_date, DATE_FMT)).days
 
 
 class calendar_row(IntEnum):
@@ -108,8 +109,9 @@ def get_calendar(
 
             elif delta:
 
-                front_opt   = front_cd.get_opt_by_delta(type, delta)
-                back_opt    = back_cd.get_opt_by_delta(type, delta)
+                front_opt       = front_cd.get_opt_by_delta(type, delta)
+                front_strike    = front_opt[opt_row.strike]
+                back_opt        = back_cd.get_opt_by_strike(type, front_strike)
 
             if not front_opt or not back_opt:
 
@@ -128,13 +130,13 @@ def get_calendar(
                         strike if strike else delta
                     )
 
-            rows = calendar.get_rows()
+            rows = cal.get_rows()
 
             # redefine in case delta was passed, rather than strike
 
-            strike          = front_opt[opt_row.strike]
+            front_strike    = front_opt[opt_row.strike]
 
-            front_exp       = front_opt[opt_row.date]
+            front_exp       = front_opt[opt_row.expiry]
             front_delta     = front_opt[opt_row.settle_delta]
             front_dte       = max(0, get_width(date, front_exp))
             front_settle    = front_opt[opt_row.settle]
@@ -142,12 +144,13 @@ def get_calendar(
             front_iv        = iv(
                                 type, 
                                 front_ul_settle, 
-                                strike,
-                                front_dte,
-                                front_settle
+                                front_strike,
+                                front_dte / 252,
+                                front_settle,
+                                RATE
                             )
 
-            back_exp        = back_opt[opt_row.date]
+            back_exp        = back_opt[opt_row.expiry]
             back_delta      = back_opt[opt_row.settle_delta]
             back_dte        = max(0, get_width(date, back_exp))
             back_settle     = back_opt[opt_row.settle]
@@ -155,9 +158,10 @@ def get_calendar(
             back_iv         = iv(
                                 type,
                                 back_ul_settle,
-                                strike,
-                                back_dte,
-                                back_settle
+                                front_strike,
+                                back_dte / 252,
+                                back_settle,
+                                RATE
                             )
 
             rows.append(
@@ -211,7 +215,7 @@ def report(
 
             if opt:
 
-                ref_delta = opt.rows[-1][opt_row.settle_delta]
+                ref_delta = opt[opt_row.settle_delta]
 
             if ref_delta:
 
@@ -243,17 +247,15 @@ def report(
 
                 back_exp = expiries[j]
 
-                width = get_width(front_leg_expiry, back_leg_expiry)
+                width = get_width(front_exp, back_exp)
 
                 if ref_width - width_margin <= width <= ref_width + width_margin:
 
                     id = (front_exp, back_exp, ref_delta, ref_type)
 
-                    if id not in calendars:
+                    if id not in calendars and not (front_exp == front_leg_expiry and back_exp == back_leg_expiry):
                     
                         calendars[id] = get_calendar(cs, ref_type, front_exp, back_exp, None, ref_delta)
-
-    pass
 
 
 if __name__ == "__main__":
