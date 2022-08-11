@@ -14,6 +14,7 @@ DATE_FMT    = "%Y-%m-%d"
 RATE        = 0.03
 DPY         = 252
 
+
 def get_width(front_date, back_date):
 
     return (datetime.strptime(back_date, DATE_FMT) - datetime.strptime(front_date, DATE_FMT)).days
