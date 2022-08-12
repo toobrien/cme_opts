@@ -1,18 +1,34 @@
-from black_scholes  import iv
-from chain_set      import chain_set
-from datetime       import datetime
-from enum           import IntEnum
-from structs        import opt_row
-from sys            import argv
-from time           import time
-from util           import get_chain_set
+from black_scholes      import iv
+from chain_set          import chain_set
+from datetime           import datetime
+from enum               import IntEnum
+from plotly.subplots    import make_subplots
+from structs            import opt_row
+from sys                import argv
+from time               import time
+from util               import get_chain_set
 
+import plotly.graph_objects as go
+
+
+# query constants
 
 START       = "1900-01-01"
 END         = "2100-01-01"
 DATE_FMT    = "%Y-%m-%d"
+
+# iv constants
+
 RATE        = 0.03
 DPY         = 252
+
+
+# plotting constants
+
+PLOT_HEIGHT = 400
+MIN_OPACITY = 0.2
+REF_COLOR   = "#FF0000"
+OTHER_COLOR = "#0000FF"
 
 
 def get_width(front_date, back_date):
@@ -33,6 +49,9 @@ class calendar_row(IntEnum):
     back_iv         = 8
     back_delta      = 9
     back_ul_settle  = 10
+    price           = 11
+    term_spread     = 12
+    strike          = 13
 
 
 # instantiate with get_calendar()
@@ -42,6 +61,7 @@ class calendar():
 
     def __init__(
         self,
+        ul_symbol:          str,
         type:               int,
         front_exp:          str,
         front_ul:           str,
@@ -52,6 +72,7 @@ class calendar():
         strike_or_delta:    float
     ):
 
+        self.ul_symbol          = ul_symbol
         self.type               = type
         self.front_exp          = front_exp
         self.front_ul           = front_ul
@@ -66,6 +87,15 @@ class calendar():
         self.rows   = []
 
     
+    def __str__(self):
+
+        type_str    = "call" if self.type else "put"
+
+        return  f"{self.ul_symbol} {self.strike_or_delta} {type_str} " +\
+                f"{self.front_class}:{self.front_exp} " +\
+                f"{self.back_class}:{self.back_exp}"
+
+
     def get_type(self):             return self.type 
     def get_front_exp(self):        return self.front_exp
     def get_front_ul(self):         return self.front_ul
@@ -76,11 +106,13 @@ class calendar():
     def get_strike_or_delta(self):  return self.strike_or_delta
     def get_id(self):               return self.id
     def get_width(self):            return self.width
+    def get_id(self):               return self.id
     def get_rows(self):             return self.rows
 
 
 def get_calendar(
     cs:                 chain_set,
+    ul_symbol:          str,
     type:               int,
     front_leg_expiry:   str,
     back_leg_expiry:    str,
@@ -121,6 +153,7 @@ def get_calendar(
             if not cal:
 
                 cal = calendar(
+                        ul_symbol,
                         type,
                         front_leg_expiry,
                         front_opt[opt_row.underlying_id], 
@@ -165,6 +198,9 @@ def get_calendar(
                                 RATE
                             )
 
+            price       = back_settle - front_settle
+            term_spread = back_ul_settle - front_ul_settle 
+
             rows.append(
                 (
                     date,
@@ -177,14 +213,115 @@ def get_calendar(
                     back_dte,
                     back_iv,
                     back_delta,
-                    back_ul_settle
+                    back_ul_settle,
+                    price,
+                    term_spread,
+                    front_strike
                 )
             )
 
     return cal
 
 
+def get_series_text(row: calendar_row):
+
+    text = [
+        "date:".ljust(15)           + f"{row[calendar_row.date]:>10s}",
+        "",                                        
+        "strike:".ljust(15)         + f"{row[calendar_row.strike]:>10.5f}",
+        "price:".ljust(15)          + f"{row[calendar_row.price]:>10.5f}",          
+        "term_spread:".ljust(15)    + f"{row[calendar_row.term_spread]:>10.5f}",
+        "",   
+        "f_settle:".ljust(15)       + f"{row[calendar_row.front_settle]:>10.5f}",
+        "f_dte:".ljust(15)          + f"{row[calendar_row.front_dte]:>10d}", 
+        "f_delta:".ljust(15)        + f"{row[calendar_row.front_delta]:>10.2}",
+        "f_iv:".ljust(15)           + f"{row[calendar_row.front_iv]:>10.2f}",
+        "f_ul_settle:".ljust(15)    + f"{row[calendar_row.front_ul_settle]:10.5f}",
+        "",
+        "b_settle:".ljust(15)       + f"{row[calendar_row.back_settle]:>10.5f}",
+        "b_dte:".ljust(15)          + f"{row[calendar_row.back_dte]:>10d}",
+        "b_delta:".ljust(15)        + f"{row[calendar_row.back_delta]:>10.2f}",
+        "b_iv:".ljust(15)           + f"{row[calendar_row.back_iv]:>10.2f}",
+        "b_ul_settle:".ljust(15)    + f"{row[calendar_row.back_ul_settle]:>10.5f}"
+    ]
+
+    return  "<br>".join(text)
+
+
+def get_normalized_premium(row: calendar_row):
+
+    ul_avg_price = (
+        row[calendar_row.back_ul_settle] + \
+        row[calendar_row.front_ul_settle]
+    ) / 2
+
+    return row[calendar_row.price] / ul_avg_price * 100
+
+
+def plot(
+    ref_cal:    calendar,
+    calendars:  dict[tuple: calendar] 
+):
+
+    fig = make_subplots(2, 1)
+
+    fig.update_layout(
+        height  = PLOT_HEIGHT * 2,
+        title   = str(ref_cal)
+    )
+
+    rows = ref_cal.get_rows()
+
+    ref_cal_trace = {
+        "x":        [ row[calendar_row.front_dte]               for row in rows ],
+        "y":        [ row[calendar_row.price]                   for row in rows ],
+        "text":     [ get_series_text(row)                      for row in rows ],
+        "name":     str(ref_cal),
+        "mode":     "markers",
+        "marker":   {
+            "color": REF_COLOR
+        }
+    }
+
+    fig.add_trace(
+        go.Scatter(**ref_cal_trace),
+        row = 1,
+        col = 1
+    )
+
+    opacity = MIN_OPACITY
+    step    = (1 - MIN_OPACITY) / len(calendars)
+
+    for id, cal in calendars.items():
+
+        rows    = cal.get_rows()
+        color   = REF_COLOR if id == ref_cal else OTHER_COLOR
+        opacity = min(opacity + step, 1) 
+
+        trace = {
+            "x":        [ row[calendar_row.front_dte]  for row in rows ],
+            "y":        [ get_normalized_premium(row)  for row in rows ],
+            "text":     [ get_series_text(row)      for row in rows ],
+            "name":     str(cal),
+            "mode":     "markers",
+            "marker":   {
+                "color": color
+            },
+            "opacity": opacity
+        }
+
+        fig.add_trace(
+            go.Scatter(**trace),
+            row = 2,
+            col = 1
+        )
+
+
+    fig.show()
+
+
 def report(
+    symbol:             str,
     cs:                 chain_set,
     ref_type:           int,
     ref_strike:         float,
@@ -232,7 +369,15 @@ def report(
 
     id = (ref_front_leg_exp, ref_back_leg_exp, ref_strike, ref_type)
 
-    ref_cal = get_calendar(cs, ref_type, ref_front_leg_exp, ref_back_leg_exp, ref_strike, None)
+    ref_cal = get_calendar(
+                cs,
+                symbol,
+                ref_type,
+                ref_front_leg_exp,
+                ref_back_leg_exp,
+                ref_strike,
+                None
+            )
 
     calendars[id] = ref_cal
 
@@ -256,7 +401,17 @@ def report(
 
                     if id not in calendars and not (front_exp == front_leg_expiry and back_exp == back_leg_expiry):
                     
-                        calendars[id] = get_calendar(cs, ref_type, front_exp, back_exp, None, ref_delta)
+                        calendars[id] = get_calendar(
+                                            cs,
+                                            symbol,
+                                            ref_type,
+                                            front_exp, 
+                                            back_exp,
+                                            None,
+                                            ref_delta
+                                        )
+
+    plot(ref_cal, calendars)
 
 
 if __name__ == "__main__":
@@ -279,6 +434,7 @@ if __name__ == "__main__":
     cs = get_chain_set(symbol, START, END, excluded_classes)
 
     report(
+        symbol,
         cs,
         1 if type == "call" else 0,
         strike,
