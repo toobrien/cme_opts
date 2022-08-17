@@ -143,10 +143,15 @@ def get_calendar(
             elif delta:
 
                 front_opt       = front_cd.get_opt_by_delta(type, delta)
-                front_strike    = front_opt[opt_row.strike]
-                back_opt        = back_cd.get_opt_by_strike(type, front_strike)
 
-            if not front_opt or not back_opt:
+                if front_opt:
+                
+                    front_strike    = front_opt[opt_row.strike]
+                    back_opt        = back_cd.get_opt_by_strike(type, front_strike)
+
+            if not front_opt or not back_opt or (front_opt[opt_row.strike] != back_opt[opt_row.strike]):
+
+                # strike doesn't exist in one or both contracts
 
                 continue
 
@@ -226,23 +231,23 @@ def get_calendar(
 def get_series_text(row: calendar_row):
 
     text = [
-        "date:".ljust(15)           + f"{row[calendar_row.date]:>10s}",
+        "{0: <15}".format("date:")        + f"{row[calendar_row.date]:>10s}",
         "",                                        
-        "strike:".ljust(15)         + f"{row[calendar_row.strike]:>10.5f}",
-        "price:".ljust(15)          + f"{row[calendar_row.price]:>10.5f}",          
-        "term_spread:".ljust(15)    + f"{row[calendar_row.term_spread]:>10.5f}",
+        "{0: <15}".format("strike:")      + f"{row[calendar_row.strike]:>10.5f}",
+        "{0: <15}".format("price:")       + f"{row[calendar_row.price]:>10.5f}",          
+        "{0: <15}".format("term_spread:") + f"{row[calendar_row.term_spread]:>10.5f}",
         "",   
-        "f_settle:".ljust(15)       + f"{row[calendar_row.front_settle]:>10.5f}",
-        "f_dte:".ljust(15)          + f"{row[calendar_row.front_dte]:>10d}", 
-        "f_delta:".ljust(15)        + f"{row[calendar_row.front_delta]:>10.2}",
-        "f_iv:".ljust(15)           + f"{row[calendar_row.front_iv]:>10.2f}",
-        "f_ul_settle:".ljust(15)    + f"{row[calendar_row.front_ul_settle]:10.5f}",
+        "{0: <15}".format("f_settle:")    + f"{row[calendar_row.front_settle]:>10.5f}",
+        "{0: <15}".format("f_dte:")       + f"{row[calendar_row.front_dte]:>10d}", 
+        "{0: <15}".format("f_delta:")     + f"{row[calendar_row.front_delta]:>10.2}",
+        "{0: <15}".format("f_iv:")        + f"{row[calendar_row.front_iv]:>10.2f}",
+        "{0: <15}".format("f_ul_settle:") + f"{row[calendar_row.front_ul_settle]:>10.5f}",
         "",
-        "b_settle:".ljust(15)       + f"{row[calendar_row.back_settle]:>10.5f}",
-        "b_dte:".ljust(15)          + f"{row[calendar_row.back_dte]:>10d}",
-        "b_delta:".ljust(15)        + f"{row[calendar_row.back_delta]:>10.2f}",
-        "b_iv:".ljust(15)           + f"{row[calendar_row.back_iv]:>10.2f}",
-        "b_ul_settle:".ljust(15)    + f"{row[calendar_row.back_ul_settle]:>10.5f}"
+        "{0: <15}".format("b_settle:")    + f"{row[calendar_row.back_settle]:>10.5f}",
+        "{0: <15}".format("b_dte:")       + f"{row[calendar_row.back_dte]:>10d}",
+        "{0: <15}".format("b_delta:")     + f"{row[calendar_row.back_delta]:>10.2f}",
+        "{0: <15}".format("b_iv:")        + f"{row[calendar_row.back_iv]:>10.2f}",
+        "{0: <15}".format("b_ul_settle:") + f"{row[calendar_row.back_ul_settle]:>10.5f}"
     ]
 
     return  "<br>".join(text)
@@ -273,13 +278,16 @@ def plot(
     rows = ref_cal.get_rows()
 
     ref_cal_trace = {
-        "x":        [ row[calendar_row.front_dte]               for row in rows ],
-        "y":        [ row[calendar_row.price]                   for row in rows ],
-        "text":     [ get_series_text(row)                      for row in rows ],
+        "x":        [ row[calendar_row.front_dte]   for row in rows ],
+        "y":        [ row[calendar_row.price]       for row in rows ],
+        "text":     [ get_series_text(row)          for row in rows ],
         "name":     str(ref_cal),
         "mode":     "markers",
         "marker":   {
             "color": REF_COLOR
+        },
+        "hoverlabel": { 
+            "font": { "family": "Courier New" }
         }
     }
 
@@ -307,7 +315,10 @@ def plot(
             "marker":   {
                 "color": color
             },
-            "opacity": opacity
+            "opacity":  opacity,
+            "hoverlabel": { 
+                "font": { "family": "Courier New" }
+            }
         }
 
         fig.add_trace(

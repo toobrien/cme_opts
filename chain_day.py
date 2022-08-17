@@ -89,9 +89,10 @@ class chain_day():
 
         for i in range(1, len(strikes)):
 
-            if strikes[i - 1] <= strike and strikes[i] < strike:
+            if strikes[i - 1] < strike and strikes[i] >= strike:
 
-                opt = self.opt_rows[strike][side]
+                strike_     = self.strikes[i]
+                opt         = self.opt_rows[strike_][side]
 
         return opt
 
