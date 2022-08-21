@@ -396,6 +396,8 @@ def report(
 
     for date in dates:
 
+        expiries = cs.get_expiries_by_date(date)
+
         for i in range(len(expiries) - 1):
 
             front_exp = expiries[i]
