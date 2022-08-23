@@ -144,7 +144,7 @@ def get_chain_set(
         '''
     ).fetchall()
 
-    print(f"query: {time() - t1:0.1f}")
+    print(f"cs.get_chain_set:query: {time() - t1:0.1f}")
 
     dates = { row[opt_row.date]: {} for row in opt_rows }
 
