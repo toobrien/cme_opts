@@ -438,20 +438,20 @@ def plot(
     calendars:  dict[tuple: calendar] 
 ):
 
-    fig = make_subplots(3, 1)
+    fig = make_subplots(2, 1)
 
     fig.update_layout(
         height  = PLOT_HEIGHT * 2,
         title   = str(ref_cal)
     )
 
-    # plot ref cal with true premiums in top plot
+    # add ref cal trace to both plots
 
     rows = ref_cal.get_rows()
 
     ref_cal_trace = {
         "x":        [ row[calendar_row.front_dte]   for row in rows ],
-        "y":        [ row[calendar_row.price]       for row in rows ],
+        "y":        [ get_normalized_premium(row)   for row in ref_cal.get_rows() ],
         "text":     [ get_series_text(row)          for row in rows ],
         "name":     str(ref_cal),
         "mode":     "markers",
@@ -464,8 +464,14 @@ def plot(
     }
 
     fig.add_trace(
-        go.Scatter(**ref_cal_trace),
+        ref_cal_trace,
         row = 1,
+        col = 1
+    )
+
+    fig.add_trace(
+        ref_cal_trace,
+        row = 2,
         col = 1
     )
 
@@ -503,31 +509,13 @@ def plot(
             }
         }
 
-        row_ = 3 if isinstance(cal, variable_strike_calendar) else 2
+        row_ = 2 if isinstance(cal, variable_strike_calendar) else 1
 
         fig.add_trace(
             go.Scatter(**trace),
             row = row_,
             col = 1
         )
-
-    # add ref cal with normalized premium to fixed delta and variable strike plots
-
-    #ref_cal_trace               = deepcopy(ref_cal_trace)
-    ref_cal_trace["y"]          = [ get_normalized_premium(row) for row in ref_cal.get_rows() ]
-    ref_cal_normalized_scatter  = go.Scatter(**ref_cal_trace)
-
-    fig.add_trace(
-        ref_cal_normalized_scatter,
-        row = 2,
-        col = 1
-    )
-
-    fig.add_trace(
-        ref_cal_normalized_scatter,
-        row = 3,
-        col = 1
-    )
 
     fig.show()
 
