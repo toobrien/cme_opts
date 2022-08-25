@@ -1,6 +1,5 @@
 from black_scholes      import iv
 from chain_set          import chain_set
-from copy               import deepcopy
 from datetime           import datetime
 from enum               import IntEnum
 from plotly.subplots    import make_subplots
@@ -235,7 +234,8 @@ def get_calendar(
     back_leg_expiry:    str,
     strike:             float,
     delta:              float,
-    offsets:            dict[float]
+    offsets:            dict[float],
+    price_multiplier:   float
 ):
 
     cal   = None
@@ -275,7 +275,7 @@ def get_calendar(
                 try:
 
                     front_offset    = offsets[dte]
-                    front_strike    = front_cd.underlying_settle * front_offset
+                    front_strike    = front_cd.underlying_settle * price_multiplier * front_offset
                     front_opt       = front_cd.get_opt_by_strike(type, front_strike)
                     back_opt        = back_cd.get_opt_by_strike(type, front_strike)
 
@@ -343,7 +343,7 @@ def get_calendar(
             front_delta     = front_opt[opt_row.settle_delta]
             front_dte       = max(0, get_width(date, front_exp))
             front_settle    = front_opt[opt_row.settle]
-            front_ul_settle = front_cd.get_underlying_settle()
+            front_ul_settle = front_cd.get_underlying_settle() * price_multiplier
             front_iv        = iv(
                                 type, 
                                 front_ul_settle, 
@@ -357,7 +357,7 @@ def get_calendar(
             back_delta      = back_opt[opt_row.settle_delta]
             back_dte        = max(0, get_width(date, back_exp))
             back_settle     = back_opt[opt_row.settle]
-            back_ul_settle  = back_cd.get_underlying_settle()
+            back_ul_settle  = back_cd.get_underlying_settle() * price_multiplier
             back_iv         = iv(
                                 type,
                                 back_ul_settle,
@@ -423,14 +423,17 @@ def get_series_text(row: calendar_row):
     return  "<br>".join(text)
 
 
-def get_normalized_premium(row: calendar_row):
+def get_normalized_premium(
+    row:                calendar_row,
+    price_multiplier:   float
+):
 
     ul_avg_price = (
         row[calendar_row.back_ul_settle] + \
         row[calendar_row.front_ul_settle]
     ) / 2
 
-    return row[calendar_row.price] / ul_avg_price * 100
+    return row[calendar_row.price] / ul_avg_price * price_multiplier * 100
 
 
 def plot(
@@ -438,21 +441,30 @@ def plot(
     calendars:  dict[tuple: calendar] 
 ):
 
-    fig = make_subplots(2, 1)
+    fig = make_subplots(
+        rows            = 2, 
+        cols            = 1,
+        subplot_titles  = ( "fixed delta", "fixed moneyness" )
+    )
 
     fig.update_layout(
         height  = PLOT_HEIGHT * 2,
         title   = str(ref_cal)
     )
 
+    fig.update_xaxes(title_text = "dte", row = 1, col = 1)
+    fig.update_xaxes(title_text = "dte", row = 2, col = 1)
+    fig.update_yaxes(title_text = "premium", row = 1, col = 1)
+    fig.update_yaxes(title_text = "premium", row = 2, col = 1)
+
     # add ref cal trace to both plots
 
     rows = ref_cal.get_rows()
 
     ref_cal_trace = {
-        "x":        [ row[calendar_row.front_dte]   for row in rows ],
-        "y":        [ get_normalized_premium(row)   for row in ref_cal.get_rows() ],
-        "text":     [ get_series_text(row)          for row in rows ],
+        "x":        [ row[calendar_row.front_dte]                   for row in rows ],
+        "y":        [ get_normalized_premium(row, price_multiplier) for row in ref_cal.get_rows() ],
+        "text":     [ get_series_text(row)                          for row in rows ],
         "name":     str(ref_cal),
         "mode":     "markers",
         "marker":   {
@@ -495,9 +507,9 @@ def plot(
         opacity = min(opacity + step, 1) 
 
         trace = {
-            "x":        [ row[calendar_row.front_dte]   for row in rows ],
-            "y":        [ get_normalized_premium(row)   for row in rows ],
-            "text":     [ get_series_text(row)          for row in rows ],
+            "x":        [ row[calendar_row.front_dte]                   for row in rows ],
+            "y":        [ get_normalized_premium(row, price_multiplier) for row in rows ],
+            "text":     [ get_series_text(row)                          for row in rows ],
             "name":     str(cal),
             "mode":     "markers",
             "marker":   {
@@ -527,7 +539,8 @@ def report(
     ref_strike:         float,
     ref_front_leg_exp:  str,
     ref_back_leg_exp:   str,
-    width_margin:       int
+    width_margin:       int,
+    price_multiplier:   float
 ):
 
     # set reference delta from latest settlement of user-specified front leg
@@ -577,7 +590,8 @@ def report(
                 ref_back_leg_exp,
                 ref_strike,
                 None,
-                None
+                None,
+                price_multiplier
             )
 
     calendars[id] = ref_cal
@@ -619,7 +633,8 @@ def report(
                                             back_exp,
                                             None,
                                             ref_delta,
-                                            None
+                                            None,
+                                            price_multiplier
                                         )
 
                     # variable strike
@@ -636,7 +651,8 @@ def report(
                                             back_exp,
                                             None,
                                             None,
-                                            offsets
+                                            offsets,
+                                            price_multiplier
                                         )
                     
 
@@ -652,11 +668,12 @@ if __name__ == "__main__":
     front_leg_expiry    = defs[0]
     back_leg_expiry     = defs[1]
     width_margin        = int(argv[5])
+    price_multiplier    = float(argv[6])
     excluded_classes    = []
 
-    if len(argv) > 5:
+    if len(argv) > 6:
 
-        excluded_classes = argv[6:]
+        excluded_classes = argv[7:]
 
     t0 = time()
 
@@ -669,7 +686,8 @@ if __name__ == "__main__":
         strike,
         front_leg_expiry,
         back_leg_expiry,
-        width_margin
+        width_margin,
+        price_multiplier
     )
 
     print(f"elapsed: {time() - t0: 0.1f}")
