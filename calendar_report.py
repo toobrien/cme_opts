@@ -673,7 +673,7 @@ if __name__ == "__main__":
 
     if len(argv) > 6:
 
-        excluded_classes = argv[7:]
+        excluded_classes = [ f'"{class_}"' for class_ in argv[7:] ]
 
     t0 = time()
 
