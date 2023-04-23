@@ -28,7 +28,7 @@ def get_chain_defs_by_date(symbol: str):
         '''
     ).rows()
 
-    # weird hack, "DISTINCT" not working in query above...
+    # weird hack, "DISTINCT" not working in query above... need to fix
 
     rows = sorted(list(set(rows)), key = lambda x: (x[0], x[2]))
 
