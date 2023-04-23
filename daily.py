@@ -3,12 +3,14 @@ from sys        import argv
 from structs    import opt_row
 
 
+# usage: python daily.py ZW ZW1 10
+
+
 def report(
     ul: str,
     opt_class: str,
     n_strikes: int
 ):
-
 
     by_date = get_chain_defs_by_date(ul)
     latest  = list(by_date.keys())[-1]
@@ -75,7 +77,6 @@ def report(
                 )
             
             print("\n")
-
 
 
 if __name__ == "__main__":

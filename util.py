@@ -1,31 +1,31 @@
-from chain_day  import chain_day
-from chain_def  import chain_def
-from chain_set  import chain_set
-from json       import loads
-from sqlite3    import connect
-from structs    import opt_row
-from time       import time
-from typing     import List
+from    chain_day   import  chain_day
+from    chain_def   import  chain_def
+from    chain_set   import  chain_set
+from    json        import  loads
+import  polars      as      pl
+from    structs     import  opt_row
+from    time        import  time
+from    typing      import  List
 
 
 CONFIG  = loads(open("./config.json").read())
-CON     = connect(CONFIG["db_path"])
-CUR     = CON.cursor()
+DB      = pl.SQLContext()
+
+DB.register("cme_opts", pl.read_parquet(CONFIG["db_path"]).lazy())
 
 
 # see list_defs.py for usage
 
 def get_chain_defs_by_date(symbol: str):
 
-    rows = CUR.execute(
+    rows = DB.query(
         f'''
-            SELECT      date, name, expiry, underlying_id, COUNT(1)
-            FROM        cme_opts
-            WHERE       underlying_symbol = "{symbol}"
-            GROUP BY    date, name, expiry, underlying_id
-            ORDER BY    date ASC, expiry ASC
+            SELECT DISTINCT date, name, expiry, underlying_id
+            FROM            cme_opts
+            WHERE           underlying_symbol = '{symbol}'
+            ORDER BY        date ASC, expiry ASC
         '''
-    ).fetchall()
+    ).rows()
 
     by_date = {}
 
@@ -56,13 +56,13 @@ def get_chain_day(definition: chain_def, date: str):
 
     try:
 
-        ul_row = CUR.execute(
+        ul_row = DB.query(
             f'''
                 SELECT  date, contract_id, year, month, settle
                 FROM    ohlc
-                WHERE   contract_id = "{definition.underlying_id}" AND date = "{date}"
+                WHERE   contract_id = '{definition.underlying_id}' AND date = '{date}'
             '''
-        ).fetchall()[0]
+        ).rows()[0]
 
     except IndexError:
 
@@ -70,16 +70,16 @@ def get_chain_day(definition: chain_def, date: str):
 
         return None
 
-    opt_rows = CUR.execute(
+    opt_rows = DB.query(
         f'''
             SELECT  *
             FROM    cme_opts
-            WHERE   date            = "{date}"
-            AND     name            = "{definition.opt_class}"
-            AND     expiry          = "{definition.expiry}"
-            AND     underlying_id   = "{definition.underlying_id}"
+            WHERE   date            = '{date}'
+            AND     name            = '{definition.opt_class}'
+            AND     expiry          = '{definition.expiry}'
+            AND     underlying_id   = '{definition.underlying_id}'
         '''
-    ).fetchall()
+    ).rows()
 
     cd = chain_day(
         date,
@@ -104,16 +104,16 @@ def get_expiries_for_underlying_and_class(
     date:           str
 ):
 
-    exps = CUR.execute(
+    exps = DB.query(
         f'''
             SELECT      expiry
             FROM        cme_opts
-            WHERE       date            = "{date}"
-            AND         name            = "{opt_class}"
-            AND         underlying_id   = "{underlying_id}"
+            WHERE       date            = '{date}'
+            AND         name            = '{opt_class}'
+            AND         underlying_id   = '{underlying_id}'
             GROUP BY    expiry
         '''
-    ).fetchall()
+    ).rows()
 
     flat = [ exp[0] for exp in exps ]
 
@@ -134,17 +134,17 @@ def get_chain_set(
 
     t1 = time()
 
-    opt_rows = CUR.execute(
+    opt_rows = DB.query(
         f'''
             SELECT  *
             FROM    cme_opts
-            WHERE   date BETWEEN "{start}" AND "{end}"
-            AND     underlying_symbol = "{symbol}"
-            AND     name NOT IN ({", ".join(excluded_classes)})
+            WHERE   date BETWEEN '{start}' AND '{end}'
+            AND     underlying_symbol = '{symbol}'
+            AND     name NOT IN ({', '.join(excluded_classes)})
         '''
-    ).fetchall()
+    ).rows()
 
-    print(f"cs.get_chain_set:query: {time() - t1:0.1f}")
+    # print(f"cs.get_chain_set:query: {time() - t1:0.1f}")
 
     dates = { row[opt_row.date]: {} for row in opt_rows }
 

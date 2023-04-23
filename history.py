@@ -1,11 +1,13 @@
 from sys            import argv
 from black_scholes  import iv
-from chain_day      import chain_day
 from chain_def      import chain_def
 from datetime       import datetime, timedelta
 from json           import loads
 from structs        import opt_row
 from util           import get_chain_day, get_expiries_for_underlying_and_class
+
+
+# usage: python history.py ZW ZW1 90
 
 
 SCALE_CONFIG    = loads(open("./contract_scale.json", "r").read())

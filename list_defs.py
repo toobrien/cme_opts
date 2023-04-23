@@ -3,7 +3,12 @@ from util       import get_chain_defs_by_date, get_chain_day
 from sys        import argv
 from structs    import opt_row
 
+
+# usage: python list_defs.py ZW ZW1
+
+
 CONTRACT_DESCRIPTIONS = loads(open("./contract_descriptions.json").read())
+
 
 def report(ul: str, class_: str):
 
@@ -18,7 +23,7 @@ def report(ul: str, class_: str):
             cd = get_chain_day(chain_def, latest)
             oi = 0
 
-            for strike, rows in cd.opt_rows.items():
+            for _, rows in cd.opt_rows.items():
 
                 try:    oi += rows[0][opt_row.previous_interest]
                 except: pass

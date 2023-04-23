@@ -1,4 +1,4 @@
 {
-    "db_path": "../data/futures.db"
+    "db_path": "../data/opts.parquet"
 }
 

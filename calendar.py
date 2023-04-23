@@ -1,15 +1,22 @@
-from black_scholes      import iv
-from chain_set          import chain_set
-from datetime           import datetime
-from enum               import IntEnum
-from plotly.subplots    import make_subplots
-from structs            import opt_row
-from sys                import argv
-from time               import time
-from util               import get_chain_set
+from    black_scholes           import  iv
+from    chain_set               import  chain_set
+from    datetime                import  datetime
+from    enum                    import  IntEnum
+import  plotly.graph_objects    as      go
+from    plotly.subplots         import  make_subplots
+from    structs                 import  opt_row
+from    sys                     import  argv
+from    time                    import  time
+from    util                    import  get_chain_set
 
-import plotly.graph_objects as go
 
+# usage: python calendar.py ZW call 2023-04-01:2023-04-22 5 0.01 OZW
+
+# - the dates are expiries for a sample spread, two options you are interested in trading
+# - the following number is a margin of days, for finding comparable historical spreads,
+#   to be added/subtracted from the width of the sample spread
+# - the float is a price multiplier for adjusting contract prices
+# - the last N arguments are option classes to exclude in the search for comparable spreads
 
 # query constants
 
