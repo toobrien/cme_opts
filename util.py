@@ -11,7 +11,8 @@ from    typing      import  List
 CONFIG  = loads(open("./config.json").read())
 DB      = pl.SQLContext()
 
-DB.register("cme_opts", pl.read_parquet(CONFIG["db_path"]).lazy())
+DB.register("cme_opts", pl.read_parquet(CONFIG["opts_path"]).lazy())
+DB.register("ohlc", pl.read_parquet(CONFIG["futs_path"]).lazy())
 
 
 # see list_defs.py for usage
@@ -23,9 +24,13 @@ def get_chain_defs_by_date(symbol: str):
             SELECT DISTINCT date, name, expiry, underlying_id
             FROM            cme_opts
             WHERE           underlying_symbol = '{symbol}'
-            ORDER BY        date ASC, expiry ASC
+            ORDER BY        date ASC, expiry ASC;
         '''
     ).rows()
+
+    # weird hack, "DISTINCT" not working in query above...
+
+    rows = sorted(list(set(rows)), key = lambda x: (x[0], x[2]))
 
     by_date = {}
 

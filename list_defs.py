@@ -4,7 +4,7 @@ from sys        import argv
 from structs    import opt_row
 
 
-# usage: python list_defs.py ZW ZW1
+# usage: python list_defs.py ZW all
 
 
 CONTRACT_DESCRIPTIONS = loads(open("./contract_descriptions.json").read())

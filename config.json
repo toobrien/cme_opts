@@ -1,4 +1,5 @@
 {
-    "db_path": "../data/opts.parquet"
+    "futs_path": "../data/futs.parquet",
+    "opts_path": "../data/opts.parquet"
 }
 
