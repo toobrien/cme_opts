@@ -8,12 +8,16 @@ from    time        import  time
 from    typing      import  List
 
 
+###########################################################
+## THIS CODE IS TOTALLY BROKEN DUE TO DB V3 MIGRATION... ##
+###########################################################
+
+
 CONFIG  = loads(open("./config.json").read())
 DB      = pl.SQLContext()
 
 DB.register("cme_opts", pl.read_parquet(CONFIG["opts_path"]).lazy())
 DB.register("ohlc", pl.read_parquet(CONFIG["futs_path"]).lazy())
-
 
 # see list_defs.py for usage
 
